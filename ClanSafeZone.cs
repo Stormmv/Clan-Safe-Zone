@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("ClanSafeZone", "Stormmv", "1.0.8")]
+    [Info("ClanSafeZone", "Stormmv", "1.1.0")]
     [Description("Clans can create a safe zone using a UI button in the Tool Cupboard during the first hour after wipe.")]
 
     public class ClanSafeZone : RustPlugin
@@ -105,6 +105,12 @@ namespace Oxide.Plugins
 
         private void ShowUI(BasePlayer player)
         {
+            string clan = GetClan(player);
+
+            // Only show UI if player is in an allowed clan
+            if (string.IsNullOrEmpty(clan) || !config.AllowedClans.Contains(clan))
+                return;
+
             DestroyUI(player);
 
             var container = new CuiElementContainer();
