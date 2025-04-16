@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("ClanSafeZone", "Stormmv", "1.0.4")]
+    [Info("ClanSafeZone", "Stormmv", "1.0.5")]
     [Description("Clans can create a safe zone using a UI button in the Tool Cupboard during the first hour after wipe.")]
 
     public class ClanSafeZone : RustPlugin
@@ -22,6 +22,7 @@ namespace Oxide.Plugins
 
         private class ConfigData
         {
+            public List<string> AllowedClans { get; set; } = new List<string>(); // List of allowed clan names
             public float ZoneRadius { get; set; } = 60f;
         }
 
@@ -130,6 +131,12 @@ namespace Oxide.Plugins
                 if (string.IsNullOrEmpty(clan))
                 {
                     player.ChatMessage("You must be in a clan to use this feature.");
+                    return;
+                }
+
+                if (!config.AllowedClans.Contains(clan))
+                {
+                    player.ChatMessage("Your clan is not allowed to create a safe zone.");
                     return;
                 }
 
