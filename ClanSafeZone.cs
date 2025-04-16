@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("ClanSafeZone", "Stormmv", "1.0.0")]
+    [Info("ClanSafeZone", "Stormmv", "1.0.1")]
     [Description("Clans can create a safe zone using a UI button in the Tool Cupboard during the first hour after wipe.")]
     public class ClanSafeZone : RustPlugin
     {
@@ -15,8 +15,24 @@ namespace Oxide.Plugins
 
         private Dictionary<string, bool> clanUsedProtection = new();
         private double wipeTime;
-        private const float ZoneRadius = 50f;
-        private const float ActivationWindow = 3600f; // First hour after wipe
+
+        private ConfigData config;
+
+        private class ConfigData
+        {
+            public float ActivationWindow { get; set; } = 3600f;
+            public float ZoneRadius { get; set; } = 50f;
+        }
+
+        protected override void LoadDefaultConfig() => config = new ConfigData();
+
+        protected override void LoadConfig()
+        {
+            base.LoadConfig();
+            config = Config.ReadObject<ConfigData>();
+        }
+
+        protected override void SaveConfig() => Config.WriteObject(config);
 
         #region Hooks
 
@@ -29,9 +45,9 @@ namespace Oxide.Plugins
         {
             if (entity == null || player == null) return;
             if (entity.ShortPrefabName != "cupboard.tool.deployed") return;
-            
-            if (Time.realtimeSinceStartup - wipeTime > ActivationWindow) return;
-            
+
+            if (Time.realtimeSinceStartup - wipeTime > config.ActivationWindow) return;
+
             timer.Once(0.2f, () => ShowUI(player));
         }
 
@@ -97,7 +113,7 @@ namespace Oxide.Plugins
                 return;
             }
 
-            if (Time.realtimeSinceStartup - wipeTime > ActivationWindow)
+            if (Time.realtimeSinceStartup - wipeTime > config.ActivationWindow)
             {
                 player.ChatMessage("The safe zone feature is no longer available.");
                 return;
@@ -122,10 +138,9 @@ namespace Oxide.Plugins
                 position.x.ToString(),
                 position.y.ToString(),
                 position.z.ToString(),
-                ZoneRadius.ToString(),
+                config.ZoneRadius.ToString(),
                 "nopvp true",
                 "noraid true",
-                "eject true",
                 $"enter_message Welcome to {clan}'s Safe Zone!",
                 $"leave_message Leaving {clan}'s Safe Zone."
             };
@@ -133,7 +148,7 @@ namespace Oxide.Plugins
             ZoneManager?.Call("CreateOrUpdateZone", args);
             clanUsedProtection[clan] = true;
 
-            float remainingTime = Mathf.Max(0f, ActivationWindow - (float)(Time.realtimeSinceStartup - wipeTime));
+            float remainingTime = Mathf.Max(0f, config.ActivationWindow - (float)(Time.realtimeSinceStartup - wipeTime));
             timer.Once(remainingTime, () => ZoneManager?.Call("EraseZone", zoneId));
         }
 
