@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("ClanSafeZone", "Stormmv", "1.0.5")]
+    [Info("ClanSafeZone", "Stormmv", "1.0.6")]
     [Description("Clans can create a safe zone using a UI button in the Tool Cupboard during the first hour after wipe.")]
 
     public class ClanSafeZone : RustPlugin
@@ -48,6 +48,9 @@ namespace Oxide.Plugins
                 PrintWarning("ZoneManager not loaded. Attempting to reload...");
                 Server.Command("oxide.reload ZoneManager");
             }
+
+            // Register the permission when the server is initialized
+            permission.RegisterPermission("clansafezone.use", this);
         }
 
         void OnLootEntity(BasePlayer player, BaseEntity entity)
@@ -123,7 +126,8 @@ namespace Oxide.Plugins
             var player = arg.Player();
             if (player == null) return;
 
-            timer.Once(0.5f, () =>
+            // Check if player has the permission AND is in an allowed clan
+            if (permission.UserHasPermission(player.UserIDString, "clansafezone.use"))
             {
                 string clan = GetClan(player);
                 Puts($"[DEBUG] Clan tag for {player.displayName}: {clan ?? "null"}");
@@ -140,6 +144,7 @@ namespace Oxide.Plugins
                     return;
                 }
 
+                // Now that we've passed all checks, create the safe zone
                 if (clanUsedProtection.ContainsKey(clan))
                 {
                     player.ChatMessage("Your clan has already used its safe zone.");
@@ -149,7 +154,11 @@ namespace Oxide.Plugins
                 CreateZoneForClan(player, clan);
                 player.ChatMessage("Clan safe zone created. It will remain active even after plugin reloads.");
                 Server.Command("oxide.reload ZoneManager");
-            });
+            }
+            else
+            {
+                player.ChatMessage("You do not have permission to create a safe zone.");
+            }
         }
 
         #endregion
