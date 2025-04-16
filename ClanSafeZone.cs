@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("ClanSafeZone", "Stormmv", "1.0.7")]
+    [Info("ClanSafeZone", "Stormmv", "1.0.8")]
     [Description("Clans can create a safe zone using a UI button in the Tool Cupboard during the first hour after wipe.")]
 
     public class ClanSafeZone : RustPlugin
@@ -56,7 +56,9 @@ namespace Oxide.Plugins
         void OnLootEntity(BasePlayer player, BaseEntity entity)
         {
             if (entity == null || player == null) return;
-            if (entity.ShortPrefabName != "cupboard.tool.deployed") return;
+
+            // Check if the entity is one of the specified tool cupboards
+            if (entity.ShortPrefabName != "cupboard.tool.shockbyte" && entity.ShortPrefabName != "cupboard.tool.retro" && entity.ShortPrefabName != "cupboard.tool.deployed") return;
 
             if (!interactingPlayers.Contains(player.userID))
             {
@@ -68,7 +70,9 @@ namespace Oxide.Plugins
         void OnLootEntityEnd(BasePlayer player, BaseEntity entity)
         {
             if (entity == null || player == null) return;
-            if (entity.ShortPrefabName != "cupboard.tool.deployed" && entity.ShortPrefabName != "cupboard.tool.shockbyte" && entity.ShortPrefabName != "cupboard.tool.retro") return;
+
+            // Check if the entity is one of the specified tool cupboards
+            if (entity.ShortPrefabName != "cupboard.tool.shockbyte" && entity.ShortPrefabName != "cupboard.tool.retro" && entity.ShortPrefabName != "cupboard.tool.deployed") return;
 
             if (interactingPlayers.Contains(player.userID))
             {
