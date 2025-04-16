@@ -68,7 +68,7 @@ namespace Oxide.Plugins
         void OnLootEntityEnd(BasePlayer player, BaseEntity entity)
         {
             if (entity == null || player == null) return;
-            if (entity.ShortPrefabName != "cupboard.tool.deployed") return;
+            if (entity.ShortPrefabName != "cupboard.tool.deployed" && entity.ShortPrefabName != "cupboard.tool.shockbyte" && entity.ShortPrefabName != "cupboard.tool.retro") return;
 
             if (interactingPlayers.Contains(player.userID))
             {
