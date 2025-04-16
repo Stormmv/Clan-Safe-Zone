@@ -107,9 +107,9 @@ namespace Oxide.Plugins
         {
             string clan = GetClan(player);
 
-            // Only show UI if player is in an allowed clan
-            if (string.IsNullOrEmpty(clan) || !config.AllowedClans.Contains(clan))
-                return;
+            // Only show UI if player is in an allowed clan AND has the permission
+            if (string.IsNullOrEmpty(clan) || !config.AllowedClans.Contains(clan)) return;
+            if (!permission.UserHasPermission(player.UserIDString, "clansafezone.use")) return;
 
             DestroyUI(player);
 
