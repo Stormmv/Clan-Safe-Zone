@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("ClanSafeZone", "Stormmv", "1.0.6")]
+    [Info("ClanSafeZone", "Stormmv", "1.0.7")]
     [Description("Clans can create a safe zone using a UI button in the Tool Cupboard during the first hour after wipe.")]
 
     public class ClanSafeZone : RustPlugin
@@ -144,13 +144,19 @@ namespace Oxide.Plugins
                     return;
                 }
 
-                // Now that we've passed all checks, create the safe zone
-                if (clanUsedProtection.ContainsKey(clan))
+                // Check if the clan already has a zone
+                var zoneIds = ZoneManager?.Call<string[]>("GetZoneIDs") ?? new string[0];
+                foreach (var zoneId in zoneIds)
                 {
-                    player.ChatMessage("Your clan has already used its safe zone.");
-                    return;
+                    // Check if the zone name contains the clan tag (e.g., clansafezone_MRTM)
+                    if (zoneId.Contains(clan))
+                    {
+                        player.ChatMessage("Your clan has already created a safe zone.");
+                        return;
+                    }
                 }
 
+                // Now that we've passed all checks, create the safe zone
                 CreateZoneForClan(player, clan);
                 player.ChatMessage("Clan safe zone created. It will remain active even after plugin reloads.");
                 Server.Command("oxide.reload ZoneManager");
