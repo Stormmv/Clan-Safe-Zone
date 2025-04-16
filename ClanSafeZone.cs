@@ -7,13 +7,14 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("ClanSafeZone", "Stormmv", "1.0.1")]
+    [Info("ClanSafeZone", "Stormmv", "1.0.2")]
     [Description("Clans can create a safe zone using a UI button in the Tool Cupboard during the first hour after wipe.")]
     public class ClanSafeZone : RustPlugin
     {
         [PluginReference] Plugin Clans, ZoneManager;
 
         private Dictionary<string, bool> clanUsedProtection = new();
+        private HashSet<ulong> interactingPlayers = new();
         private double wipeTime;
 
         private ConfigData config;
@@ -38,6 +39,11 @@ namespace Oxide.Plugins
 
         void OnServerInitialized()
         {
+            if (Clans == null)
+            {
+                PrintError("Clans Reborn plugin not found! Please make sure it's installed and loaded.");
+            }
+
             wipeTime = Time.realtimeSinceStartup;
         }
 
@@ -48,7 +54,23 @@ namespace Oxide.Plugins
 
             if (Time.realtimeSinceStartup - wipeTime > config.ActivationWindow) return;
 
-            timer.Once(0.2f, () => ShowUI(player));
+            if (!interactingPlayers.Contains(player.userID))
+            {
+                interactingPlayers.Add(player.userID);
+                timer.Once(0.2f, () => ShowUI(player)); // Show the UI when TC is opened
+            }
+        }
+
+        void OnLootEntityEnd(BasePlayer player, BaseEntity entity)
+        {
+            if (entity == null || player == null) return;
+            if (entity.ShortPrefabName != "cupboard.tool.deployed") return;
+
+            if (interactingPlayers.Contains(player.userID))
+            {
+                interactingPlayers.Remove(player.userID);
+                DestroyUI(player); // Destroy UI when TC is closed
+            }
         }
 
         void Unload()
@@ -101,7 +123,9 @@ namespace Oxide.Plugins
             if (player == null) return;
 
             string clan = GetClan(player);
-            if (clan == null)
+            Puts($"[DEBUG] Clan tag for {player.displayName}: {clan ?? "null"}");
+
+            if (string.IsNullOrEmpty(clan))
             {
                 player.ChatMessage("You must be in a clan to use this feature.");
                 return;
@@ -155,7 +179,7 @@ namespace Oxide.Plugins
         private string GetClan(BasePlayer player)
         {
             var result = Clans?.Call("GetClanOf", player.userID);
-            return result is string clanTag ? clanTag : null;
+            return result as string;
         }
 
         #endregion
