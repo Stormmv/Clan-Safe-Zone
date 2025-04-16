@@ -7,22 +7,22 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("ClanSafeZone", "Stormmv", "1.0.2")]
+    [Info("ClanSafeZone", "Stormmv", "1.0.4")]
     [Description("Clans can create a safe zone using a UI button in the Tool Cupboard during the first hour after wipe.")]
+
     public class ClanSafeZone : RustPlugin
     {
         [PluginReference] Plugin Clans, ZoneManager;
 
         private Dictionary<string, bool> clanUsedProtection = new();
         private HashSet<ulong> interactingPlayers = new();
-        private double wipeTime;
 
         private ConfigData config;
+        private static string dataFileName = "ClanSafeZone";
 
         private class ConfigData
         {
-            public float ActivationWindow { get; set; } = 3600f;
-            public float ZoneRadius { get; set; } = 50f;
+            public float ZoneRadius { get; set; } = 60f;
         }
 
         protected override void LoadDefaultConfig() => config = new ConfigData();
@@ -40,11 +40,13 @@ namespace Oxide.Plugins
         void OnServerInitialized()
         {
             if (Clans == null)
-            {
                 PrintError("Clans Reborn plugin not found! Please make sure it's installed and loaded.");
-            }
 
-            wipeTime = Time.realtimeSinceStartup;
+            if (ZoneManager == null)
+            {
+                PrintWarning("ZoneManager not loaded. Attempting to reload...");
+                Server.Command("oxide.reload ZoneManager");
+            }
         }
 
         void OnLootEntity(BasePlayer player, BaseEntity entity)
@@ -52,12 +54,10 @@ namespace Oxide.Plugins
             if (entity == null || player == null) return;
             if (entity.ShortPrefabName != "cupboard.tool.deployed") return;
 
-            if (Time.realtimeSinceStartup - wipeTime > config.ActivationWindow) return;
-
             if (!interactingPlayers.Contains(player.userID))
             {
                 interactingPlayers.Add(player.userID);
-                timer.Once(0.2f, () => ShowUI(player)); // Show the UI when TC is opened
+                timer.Once(0.2f, () => ShowUI(player));
             }
         }
 
@@ -69,7 +69,7 @@ namespace Oxide.Plugins
             if (interactingPlayers.Contains(player.userID))
             {
                 interactingPlayers.Remove(player.userID);
-                DestroyUI(player); // Destroy UI when TC is closed
+                DestroyUI(player);
             }
         }
 
@@ -122,29 +122,27 @@ namespace Oxide.Plugins
             var player = arg.Player();
             if (player == null) return;
 
-            string clan = GetClan(player);
-            Puts($"[DEBUG] Clan tag for {player.displayName}: {clan ?? "null"}");
-
-            if (string.IsNullOrEmpty(clan))
+            timer.Once(0.5f, () =>
             {
-                player.ChatMessage("You must be in a clan to use this feature.");
-                return;
-            }
+                string clan = GetClan(player);
+                Puts($"[DEBUG] Clan tag for {player.displayName}: {clan ?? "null"}");
 
-            if (clanUsedProtection.ContainsKey(clan))
-            {
-                player.ChatMessage("Your clan has already used its safe zone.");
-                return;
-            }
+                if (string.IsNullOrEmpty(clan))
+                {
+                    player.ChatMessage("You must be in a clan to use this feature.");
+                    return;
+                }
 
-            if (Time.realtimeSinceStartup - wipeTime > config.ActivationWindow)
-            {
-                player.ChatMessage("The safe zone feature is no longer available.");
-                return;
-            }
+                if (clanUsedProtection.ContainsKey(clan))
+                {
+                    player.ChatMessage("Your clan has already used its safe zone.");
+                    return;
+                }
 
-            CreateZoneForClan(player, clan);
-            player.ChatMessage("Clan safe zone created. Protection will expire at the end of the first hour of wipe.");
+                CreateZoneForClan(player, clan);
+                player.ChatMessage("Clan safe zone created. It will remain active even after plugin reloads.");
+                Server.Command("oxide.reload ZoneManager");
+            });
         }
 
         #endregion
@@ -153,32 +151,56 @@ namespace Oxide.Plugins
 
         private void CreateZoneForClan(BasePlayer player, string clan)
         {
-            string zoneId = $"clansafezone_{clan}";
-            Vector3 position = player.transform.position;
-
-            var args = new List<string>
+            if (player == null)
             {
-                zoneId,
-                position.x.ToString(),
-                position.y.ToString(),
-                position.z.ToString(),
-                config.ZoneRadius.ToString(),
-                "nopvp true",
-                "noraid true",
-                $"enter_message Welcome to {clan}'s Safe Zone!",
-                $"leave_message Leaving {clan}'s Safe Zone."
+                Puts("[ERROR] Player is null.");
+                return;
+            }
+
+            Vector3 position = player.transform.position;
+            if (position == Vector3.zero)
+            {
+                Puts("[ERROR] Invalid position: (0, 0, 0). Using fallback.");
+                position = new Vector3(100f, 10f, 100f);
+            }
+
+            string zoneId = $"clansafezone_{clan}";
+            string[] args = new string[] 
+            {
+                "radius", config.ZoneRadius.ToString(),
+                "pvpgod", "true",
+                "undestr", "true",
             };
 
-            ZoneManager?.Call("CreateOrUpdateZone", args);
-            clanUsedProtection[clan] = true;
+            if (ZoneManager == null)
+            {
+                Puts("[ERROR] ZoneManager not found or not loaded.");
+                return;
+            }
 
-            float remainingTime = Mathf.Max(0f, config.ActivationWindow - (float)(Time.realtimeSinceStartup - wipeTime));
-            timer.Once(remainingTime, () => ZoneManager?.Call("EraseZone", zoneId));
+            try
+            {
+                bool? success = ZoneManager?.Call<bool>("CreateOrUpdateZone", zoneId, args, position);
+                if (success == true)
+                {
+                    Puts($"[DEBUG] Zone {zoneId} created successfully at {position}.");
+                    clanUsedProtection[clan] = true;
+                }
+                else
+                {
+                    Puts($"[DEBUG] Failed to create zone {zoneId}.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Puts($"[ERROR] Exception creating zone: {ex.Message}");
+            }
         }
 
         private string GetClan(BasePlayer player)
         {
-            var result = Clans?.Call("GetClanOf", player.userID);
+            ulong steamId = player.userID;
+            var result = Clans?.Call("GetClanOf", steamId);
             return result as string;
         }
 
