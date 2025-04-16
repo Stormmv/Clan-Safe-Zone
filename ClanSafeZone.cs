@@ -57,8 +57,11 @@ namespace Oxide.Plugins
         {
             if (entity == null || player == null) return;
 
-            // Check if the entity is one of the specified tool cupboards
-            if (entity.ShortPrefabName != "cupboard.tool.shockbyte" && entity.ShortPrefabName != "cupboard.tool.retro" && entity.ShortPrefabName != "cupboard.tool.deployed") return;
+            // Checking for both the default and custom cupboard types
+            if (entity.ShortPrefabName != "cupboard.tool.deployed" &&
+                entity.ShortPrefabName != "cupboard.tool.shockbyte.deployed" &&
+                entity.ShortPrefabName != "cupboard.tool.retro.deployed")
+                return;
 
             if (!interactingPlayers.Contains(player.userID))
             {
@@ -67,12 +70,19 @@ namespace Oxide.Plugins
             }
         }
 
+
         void OnLootEntityEnd(BasePlayer player, BaseEntity entity)
         {
             if (entity == null || player == null) return;
 
+            // Print the prefab name for debugging purposes
+            Puts($"[DEBUG] Finished interacting with prefab: {entity.ShortPrefabName}");
+
             // Check if the entity is one of the specified tool cupboards
-            if (entity.ShortPrefabName != "cupboard.tool.shockbyte" && entity.ShortPrefabName != "cupboard.tool.retro" && entity.ShortPrefabName != "cupboard.tool.deployed") return;
+            if (entity.ShortPrefabName != "cupboard.tool.deployed" &&
+                entity.ShortPrefabName != "cupboard.tool.shockbyte.deployed" &&
+                entity.ShortPrefabName != "cupboard.tool.retro.deployed")
+                return;
 
             if (interactingPlayers.Contains(player.userID))
             {
