@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("ClanSafeZone", "Stormmv", "1.1.0")]
+    [Info("ClanSafeZone", "Stormmv", "1.1.1")]
     [Description("Clans can create a safe zone using a UI button in the Tool Cupboard during the first hour after wipe.")]
 
     public class ClanSafeZone : RustPlugin
@@ -178,7 +178,7 @@ namespace Oxide.Plugins
 
                 // Now that we've passed all checks, create the safe zone
                 CreateZoneForClan(player, clan);
-                player.ChatMessage("Clan safe zone created. It will remain active even after plugin reloads.");
+                player.ChatMessage("Clan safe zone created.");
                 Server.Command("oxide.reload ZoneManager");
             }
             else
