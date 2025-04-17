@@ -75,9 +75,6 @@ namespace Oxide.Plugins
         {
             if (entity == null || player == null) return;
 
-            // Print the prefab name for debugging purposes
-            Puts($"[DEBUG] Finished interacting with prefab: {entity.ShortPrefabName}");
-
             // Check if the entity is one of the specified tool cupboards
             if (entity.ShortPrefabName != "cupboard.tool.deployed" &&
                 entity.ShortPrefabName != "cupboard.tool.shockbyte.deployed" &&
