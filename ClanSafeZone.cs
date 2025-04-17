@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("ClanSafeZone", "Stormmv", "1.1.1")]
+    [Info("ClanSafeZone", "Stormmv", "1.1.2")]
     [Description("Clans can create a safe zone using a UI button in the Tool Cupboard during the first hour after wipe.")]
 
     public class ClanSafeZone : RustPlugin
